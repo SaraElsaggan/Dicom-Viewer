@@ -27,6 +27,10 @@ class Visualizer:
         self.isovalue = isovalue
         self.reader = vtk.vtkDICOMImageReader()
         self.color = color
+        
+        self.reader = vtk.vtkDICOMImageReader()
+        self.reader.SetDirectoryName(folder)
+        self.reader.Update()
 
     def read_data(self):
         # Read DICOM data
@@ -122,8 +126,26 @@ class Visualizer:
 
         renderer.ResetCamera()
         return renderer
+    
+    def get_mpr_viewers(self):
+            # Prepare three vtkImageViewer2 instances for Axial, Coronal, and Sagittal
+        viewers = [vtk.vtkImageViewer2() for _ in range(3)]
+        
+        # Axial
+        viewers[0].SetInputConnection(self.reader.GetOutputPort())
+        viewers[0].SetSliceOrientationToXY()
 
+        # Coronal
+        viewers[1].SetInputConnection(self.reader.GetOutputPort())
+        viewers[1].SetSliceOrientationToXZ()
 
+        # Sagittal
+        viewers[2].SetInputConnection(self.reader.GetOutputPort())
+        viewers[2].SetSliceOrientationToYZ()
+
+        return viewers
+    
+    
 class MyWindow(QMainWindow):
     def __init__(self):
         super(MyWindow, self).__init__()
@@ -134,18 +156,33 @@ class MyWindow(QMainWindow):
 
         # Initialize VTK render window
         self.vtk_layout = QVBoxLayout(self.ui.vol_render_widgt)
-
         # Initialize VTK render window
         self.vtk_widget = QVTKRenderWindowInteractor(self.ui.vol_render_widgt)
         self.renderer = vtk.vtkRenderer()
         self.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
         self.vtk_widget.Initialize()
-
-        # Add the VTK widget to the layout
+        
         self.vtk_layout.addWidget(self.vtk_widget)
 
         # Ensure the layout resizes with the parent widget
         self.ui.vol_render_widgt.setLayout(self.vtk_layout)
+        
+        # self.sag_layout = QVBoxLayout(self.ui.sagittal_widget)
+        # self.sag_widget = QVTKRenderWindowInteractor(self.ui.sagittal_widget)
+        # self.sag_layout.addWidget(self.sag_widget)
+        # self.sag_widget.setLayout(self.sag_layout)
+        
+        # self.axial_layout = QVBoxLayout(self.ui.axial_widget)
+        # self.axial_widget = QVTKRenderWindowInteractor(self.ui.axial_widget)
+        # self.axial_layout.addWidget(self.axial_widget)
+        # self.axial_widget.setLayout(self.axial_layout)
+
+        # self.cor_layout = QVBoxLayout(self.ui.corittal_widget)
+        # self.cor_widget = QVTKRenderWindowInteractor(self.ui.corittal_widget)
+        # self.cor_layout.addWidget(self.cor_widget)
+        # self.cor_widget.setLayout(self.cor_layout)
+        
+        # Add the VTK widget to the layout
         
         self.ui.ray_btn.setChecked(True)
 
@@ -158,7 +195,44 @@ class MyWindow(QMainWindow):
 
         # Add shortcut for loading files
         QShortcut(QKeySequence("Ctrl+o"), self).activated.connect(self.select_folder)
+        
+        self.vtk_widgets = [self.ui.axial_widget, self.ui.coronal_widget, self.ui.sagittal_widget]
+        self.sliders = [self.ui.axial_vSlider, self.ui.coronal_vSlider, self.ui.sagittal_vSlider]
 
+        self.selected_folder = None
+        self.viewers = None
+        
+
+   
+    def setup_mpr_viewers(self):
+        if not self.viewers:
+            return
+
+        for i, widget in enumerate(self.vtk_widgets):
+            # Ensure only one instance of QVTKRenderWindowInteractor is created
+            vtk_widget = QVTKRenderWindowInteractor(widget)
+            layout = QVBoxLayout(widget)
+            layout.addWidget(vtk_widget)
+            widget.setLayout(layout)
+
+            # Attach the interactor and initialize the viewer
+            self.viewers[i].SetupInteractor(vtk_widget)
+            self.viewers[i].Render()
+
+            # Configure the slider with the slice range
+            max_slices = self.viewers[i].GetSliceMax()
+            self.sliders[i].setMinimum(0)
+            self.sliders[i].setMaximum(max_slices)
+            self.sliders[i].setValue(max_slices // 2)
+            
+            # Ensure the right slice updates using partial to avoid lambda issues
+            self.sliders[i].valueChanged.connect(lambda value, idx=i: self.update_slice(value, idx)) 
+   
+    def update_slice(self, value, idx):
+        self.viewers[idx].SetSlice(value)
+        self.viewers[idx].Render()
+        
+        
     def select_folder(self):
         # Open a dialog to select a folder
         self.selected_folder = QFileDialog.getExistingDirectory(self, "Select Folder")
@@ -167,6 +241,7 @@ class MyWindow(QMainWindow):
             # self.selected_folder_label.setText(folder_name)
             # self.visualize_button.setEnabled(True)
             self.visualize()
+            
             
     def visualize(self, in_place=False):
         if self.selected_folder:
@@ -219,6 +294,9 @@ class MyWindow(QMainWindow):
             
             render_window.AddRenderer(renderer)
             render_window.Render()
+            
+            self.viewers = visualizer.get_mpr_viewers()
+            self.setup_mpr_viewers()
 
     def toggle_inputs(self):
         # Enable/disable inputs based on the selected rendering mode
