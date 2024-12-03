@@ -110,12 +110,15 @@
           <item>
            <layout class="QHBoxLayout" name="axial_hBox">
             <item>
-             <widget class="QWidget" name="axial_widget" native="true">
+             <widget class="QLabel" name="sagittal_widget">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="text">
+               <string>TextLabel</string>
               </property>
              </widget>
             </item>
@@ -372,12 +375,15 @@
           <item>
            <layout class="QHBoxLayout" name="saggital_hBox">
             <item>
-             <widget class="QWidget" name="sagittal_widget" native="true">
+             <widget class="QLabel" name="axial_widget">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="text">
+               <string>TextLabel</string>
               </property>
              </widget>
             </item>
@@ -514,12 +520,15 @@
           <item>
            <layout class="QHBoxLayout" name="coronal_hBox">
             <item>
-             <widget class="QWidget" name="coronal_widget" native="true">
+             <widget class="QLabel" name="coronal_widget">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="text">
+               <string>TextLabel</string>
               </property>
              </widget>
             </item>

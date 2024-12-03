@@ -1,3 +1,8 @@
+from vtk.util import numpy_support
+import numpy as np
+
+from PyQt5.QtGui import QPixmap, QImage
+
 from PyQt5.QtWidgets import QApplication, QMainWindow, QShortcut, QFileDialog , QVBoxLayout
 from PyQt5.QtGui import QKeySequence
 from mainwindow import Ui_MainWindow  # Ensure this is your generated UI file
@@ -5,6 +10,8 @@ from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 import vtk
 import pydicom
 import os
+import numpy as np
+
 
 class Visualizer:
     def __init__(
@@ -132,14 +139,18 @@ class Visualizer:
         viewers = [vtk.vtkImageViewer2() for _ in range(3)]
         
         # Axial
+        viewers[0].GetRenderWindow().SetOffScreenRendering(1)
         viewers[0].SetInputConnection(self.reader.GetOutputPort())
         viewers[0].SetSliceOrientationToXY()
+        
 
         # Coronal
+        viewers[1].GetRenderWindow().SetOffScreenRendering(1)
         viewers[1].SetInputConnection(self.reader.GetOutputPort())
         viewers[1].SetSliceOrientationToXZ()
 
         # Sagittal
+        viewers[2].GetRenderWindow().SetOffScreenRendering(1)
         viewers[2].SetInputConnection(self.reader.GetOutputPort())
         viewers[2].SetSliceOrientationToYZ()
 
@@ -167,20 +178,7 @@ class MyWindow(QMainWindow):
         # Ensure the layout resizes with the parent widget
         self.ui.vol_render_widgt.setLayout(self.vtk_layout)
         
-        # self.sag_layout = QVBoxLayout(self.ui.sagittal_widget)
-        # self.sag_widget = QVTKRenderWindowInteractor(self.ui.sagittal_widget)
-        # self.sag_layout.addWidget(self.sag_widget)
-        # self.sag_widget.setLayout(self.sag_layout)
-        
-        # self.axial_layout = QVBoxLayout(self.ui.axial_widget)
-        # self.axial_widget = QVTKRenderWindowInteractor(self.ui.axial_widget)
-        # self.axial_layout.addWidget(self.axial_widget)
-        # self.axial_widget.setLayout(self.axial_layout)
-
-        # self.cor_layout = QVBoxLayout(self.ui.corittal_widget)
-        # self.cor_widget = QVTKRenderWindowInteractor(self.ui.corittal_widget)
-        # self.cor_layout.addWidget(self.cor_widget)
-        # self.cor_widget.setLayout(self.cor_layout)
+   
         
         # Add the VTK widget to the layout
         
@@ -202,6 +200,11 @@ class MyWindow(QMainWindow):
         self.selected_folder = None
         self.viewers = None
         
+        
+        # self.ui.sagittal_widget.setFixedSize(self.ui.sagittal_widget.size())
+        # self.ui.axial_widget.setFixedSize(self.ui.axial_widget.size())
+        # self.ui.coronal_widget.setFixedSize(self.ui.coronal_widget.size())
+        
 
    
     def setup_mpr_viewers(self):
@@ -209,30 +212,51 @@ class MyWindow(QMainWindow):
             return
 
         for i, widget in enumerate(self.vtk_widgets):
-            # Ensure only one instance of QVTKRenderWindowInteractor is created
-            vtk_widget = QVTKRenderWindowInteractor(widget)
-            layout = QVBoxLayout(widget)
-            layout.addWidget(vtk_widget)
-            widget.setLayout(layout)
-
-            # Attach the interactor and initialize the viewer
-            self.viewers[i].SetupInteractor(vtk_widget)
+            self.viewers[i].SetupInteractor(None)  # Disable interactor
             self.viewers[i].Render()
 
-            # Configure the slider with the slice range
+            # Set the slice to the middle
             max_slices = self.viewers[i].GetSliceMax()
+            self.viewers[i].SetSlice(max_slices // 2)
+
+            # Configure the slider with the slice range
             self.sliders[i].setMinimum(0)
             self.sliders[i].setMaximum(max_slices)
             self.sliders[i].setValue(max_slices // 2)
+
+            # Connect slider to the update_slice function
+            self.sliders[i].valueChanged.connect(lambda value, idx=i: self.update_slice(value, idx))
+
+            # Update the QLabel with the image initially
+            self.update_slice(max_slices // 2, i)
             
-            # Ensure the right slice updates using partial to avoid lambda issues
-            self.sliders[i].valueChanged.connect(lambda value, idx=i: self.update_slice(value, idx)) 
-   
+            
+            
     def update_slice(self, value, idx):
         self.viewers[idx].SetSlice(value)
         self.viewers[idx].Render()
-        
-        
+
+        # Capture the rendered image
+        w2if = vtk.vtkWindowToImageFilter()
+        w2if.SetInput(self.viewers[idx].GetRenderWindow())
+        w2if.Update()
+
+        # Convert to QImage
+        vtk_image = w2if.GetOutput()
+        width, height, _ = vtk_image.GetDimensions()
+        vtk_array = vtk.util.numpy_support.vtk_to_numpy(vtk_image.GetPointData().GetScalars())
+        vtk_array = vtk_array.reshape(height, width, 3)
+
+        # Convert to QImage (RGB)
+        image = QImage(vtk_array.data, width, height, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(image)
+        resized_pixmap = pixmap.scaled(self.ui.sagittal_widget.size())
+
+        # Set the pixmap on the QLabel
+        self.vtk_widgets[idx].setPixmap(resized_pixmap)
+  
+  
+  
     def select_folder(self):
         # Open a dialog to select a folder
         self.selected_folder = QFileDialog.getExistingDirectory(self, "Select Folder")
