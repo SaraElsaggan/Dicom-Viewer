@@ -14,26 +14,160 @@
    <string>MainWindow</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">Copyright (c) DevSec Studio. All rights reserved.
+   <string notr="true">/* General Style for the whole UI */
+QWidget {
+    background-color: #2b2b2b;
+    color: #ffffff;
+    font: bold 14px &quot;Segoe UI&quot;;
+}
 
-MIT License
+/* Button Style */
+QPushButton {
+    background-color: #3c3f41;
+    color: #ffffff;
+    border: 2px solid #5c5c5c;
+    border-radius: 8px;
+    padding: 8px 16px;
+}
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the &quot;Software&quot;), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+QPushButton:hover {
+    background-color: #505357;
+}
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+QPushButton:pressed {
+    background-color: #1e1e1e;
+    border: 2px solid #3c3f41;
+}
 
-THE SOFTWARE IS PROVIDED *AS IS*, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</string>
+/* Slider Style */
+QSlider::groove:horizontal {
+    background-color: #3c3f41;
+    height: 8px;
+    border-radius: 4px;
+}
+
+QSlider::handle:horizontal {
+    background-color: #ffffff;
+    border: 2px solid #5c5c5c;
+    width: 14px;
+    height: 14px;
+    margin: -5px 0;
+    border-radius: 7px;
+}
+
+QSlider::groove:vertical {
+    background-color: #3c3f41;
+    width: 8px;
+    border-radius: 4px;
+}
+
+QSlider::handle:vertical {
+    background-color: #ffffff;
+    border: 2px solid #5c5c5c;
+    width: 14px;
+    height: 14px;
+    margin: 0 -5px;
+    border-radius: 7px;
+}
+
+/* Radio Button Style */
+QRadioButton {
+    spacing: 8px;
+}
+
+QRadioButton::indicator {
+    width: 14px;
+    height: 14px;
+}
+
+QRadioButton::indicator:checked {
+    background-color: #ffffff;
+    border: 2px solid #5c5c5c;
+}
+
+QRadioButton::indicator:unchecked {
+    background-color: #3c3f41;
+    border: 2px solid #5c5c5c;
+}
+
+/* Spinbox Style */
+QSpinBox {
+    background-color: #3c3f41;
+    color: #ffffff;
+    border: 1px solid #5c5c5c;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* Labels Style */
+QLabel {
+    color: #ffffff;
+    font-size: 14px;
+}
+
+/* Group Box Style */
+QGroupBox {
+    border: 1px solid #5c5c5c;
+    border-radius: 5px;
+    margin-top: 20px;
+    font: bold 14px &quot;Segoe UI&quot;;
+    color: #ffffff;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top center;
+    padding: 5px;
+}
+
+/* Line Edit Style */
+QLineEdit {
+    background-color: #3c3f41;
+    color: #ffffff;
+    border: 1px solid #5c5c5c;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+
+/* QDoubleSpinBox Style */
+QDoubleSpinBox {
+    background-color: #3c3f41;
+    color: #ffffff;
+    border: 2px solid #5c5c5c;
+    border-radius: 6px;
+    padding: 5px;
+    font-size: 14px;
+    min-width: 80px;
+}
+
+QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {
+    background-color: #3c3f41;
+    border: none;
+    width: 20px;
+    height: 20px;
+}
+
+QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {
+    background-color: #505357;
+}
+
+QDoubleSpinBox::up-arrow, QDoubleSpinBox::down-arrow {
+    color: #ffffff;
+    font-size: 12px;
+}
+
+QDoubleSpinBox::up-arrow {
+    content: '▲'; /* Unicode up arrow */
+    subcontrol-origin: content;
+    subcontrol-position: center;
+}
+
+QDoubleSpinBox::down-arrow {
+    content: '▼'; /* Unicode down arrow */
+    subcontrol-origin: content;
+    subcontrol-position: center;
+}</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_2">
@@ -62,6 +196,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
         </property>
         <property name="font">
          <font>
+          <family>Segoe UI</family>
+          <pointsize>-1</pointsize>
+          <italic>false</italic>
           <bold>true</bold>
          </font>
         </property>
@@ -272,7 +409,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
       <item>
        <widget class="QSlider" name="smoothing_slider">
         <property name="maximum">
-         <number>10</number>
+         <number>100</number>
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
@@ -641,7 +778,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SO
      <x>0</x>
      <y>0</y>
      <width>1505</width>
-     <height>22</height>
+     <height>25</height>
     </rect>
    </property>
   </widget>
