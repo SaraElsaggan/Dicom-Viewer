@@ -156,6 +156,46 @@ class Visualizer:
 
         return viewers
     
+    def apply_sharpening_filter(self, viewer, reader, intensity=1.0):
+        # Create a Laplacian sharpening filter
+        sharpening_filter = vtk.vtkImageLaplacian()
+        sharpening_filter.SetInputConnection(reader.GetOutputPort())
+        sharpening_filter.SetDimensionality(3)  # Ensure it works in 3D
+        sharpening_filter.Update()
+
+        # Apply the sharpened output to the viewer
+        viewer.SetInputConnection(sharpening_filter.GetOutputPort())
+
+    def apply_smoothing_filter(self, viewer, reader, sigma=1.0):
+        smoothing_filter = vtk.vtkImageGaussianSmooth()
+        smoothing_filter.SetInputConnection(reader.GetOutputPort())
+        smoothing_filter.SetStandardDeviation(sigma)
+        smoothing_filter.Update()
+
+        # Apply the smoothed output back to the viewer
+        viewer.SetInputConnection(smoothing_filter.GetOutputPort())
+
+
+    def apply_noise_reduction_filter(self, viewer, reader, kernel_size=3):
+        """
+    Applies a median filter for noise reduction.
+    
+    Args:
+        viewer: The VTK viewer to render the output.
+        reader: The VTK DICOM reader providing the input image.
+        kernel_size: Size of the kernel for the median filter (default is 3).
+    """
+    # Create the median filter
+        median_filter = vtk.vtkImageMedian3D()
+        median_filter.SetInputConnection(reader.GetOutputPort())
+        
+        # Set the kernel size (applies to X, Y, Z dimensions)
+        median_filter.SetKernelSize(kernel_size, kernel_size, kernel_size)
+        median_filter.Update()
+
+        # Apply the filtered output to the viewer
+        viewer.SetInputConnection(median_filter.GetOutputPort())
+        
     
 class MyWindow(QMainWindow):
     def __init__(self):
@@ -201,18 +241,94 @@ class MyWindow(QMainWindow):
         self.viewers = None
         
         
-        # self.ui.sagittal_widget.setFixedSize(self.ui.sagittal_widget.size())
-        # self.ui.axial_widget.setFixedSize(self.ui.axial_widget.size())
-        # self.ui.coronal_widget.setFixedSize(self.ui.coronal_widget.size())
-        
+        self.ui.sharpen_btn.clicked.connect(lambda: self.apply_filter("sharpen"))
+        self.ui.smothing_btn.clicked.connect(lambda: self.apply_filter("smooth"))
+        self.ui.noise_reduction_btn.clicked.connect(lambda: self.apply_filter("denoise"))
 
-   
+        # Connect sliders to update labels or intensities
+        self.ui.sharpen_slider.valueChanged.connect(lambda val: self.update_filter_intensity("sharpen", val))
+        self.ui.smoothing_slider.valueChanged.connect(lambda val: self.update_filter_intensity("smooth", val))
+        self.ui.noise_reduction_slider.valueChanged.connect(lambda val: self.update_filter_intensity("denoise", val))
+        
+        self.visualizer = Visualizer(
+            folder=self.selected_folder,
+            mode="raycast",  # or "surface"
+            ambient=0.1,
+            diffuse=0.9,
+            specular=0.2,
+            specular_power=10,
+            isovalue=100,
+            color=(0.0, 0.0, 1.0),
+        )
+        
+        self.ui.ambient_input.valueChanged.connect(lambda: self.visualize(in_place=True))
+        self.ui.diffuse_input.valueChanged.connect(lambda: self.visualize(in_place=True))
+        self.ui.specular_input.valueChanged.connect(lambda: self.visualize(in_place=True))
+        self.ui.specular_power_input.valueChanged.connect(lambda: self.visualize(in_place=True))
+        
+        
+        self.ui.window_width_slider.valueChanged.connect(self.update_window_width)
+        self.ui.window_level_slider.valueChanged.connect(self.update_window_level)
+
+    
+    def update_window_width(self, value):
+        self.ui.window_width_lbl.setText(f"widnow width : {self.ui.window_width_slider.value()}")
+        for viewer in self.viewers:
+            viewer.SetColorWindow(value)
+            viewer.Render()
+            self.setup_mpr_viewers()
+
+    def update_window_level(self, value):
+        self.ui.window_level_lbl.setText(f"widnow level : {self.ui.window_level_slider.value()}")
+        for viewer in self.viewers:
+            viewer.SetColorLevel(value)
+            viewer.Render()
+            self.setup_mpr_viewers()
+            
+            
+    def update_filter_intensity(self, filter_type, value):
+        if filter_type == "sharpen":
+            self.ui.sharp_size_lbl.setText(f"sharping filter size: {self.ui.sharpen_slider.value()}")
+            self.sharpen_intensity = value / 10.0  # Scale for meaningful intensity
+        elif filter_type == "smooth":
+            self.ui.somooth_size_lbl.setText(f"smooth filter size: {self.ui.smoothing_slider.value()}")
+            self.smooth_sigma = value / 10.0
+        elif filter_type == "denoise":
+            self.ui.noise_size_lbl.setText(f"noise reducation filter size: {self.ui.noise_reduction_slider.value()}")
+            self.denoise_kernel = int(value)
+
+    def apply_filter(self, filter_type):
+        if not self.viewers or not self.selected_folder:
+            return
+
+        # Initialize the reader for the current folder
+        reader = vtk.vtkDICOMImageReader()
+        reader.SetDirectoryName(self.selected_folder)
+        reader.Update()
+
+        # Use the existing Visualizer instance to apply the filter
+        for i, viewer in enumerate(self.viewers):
+            if filter_type == "sharpen":
+                self.visualizer.apply_sharpening_filter(viewer, reader, self.sharpen_intensity)
+            elif filter_type == "smooth":
+                self.visualizer.apply_smoothing_filter(viewer, reader, self.smooth_sigma)
+            elif filter_type == "denoise":
+                self.visualizer.apply_noise_reduction_filter(viewer, reader, self.denoise_kernel)
+
+            # Re-render the updated viewer
+            viewer.Render()
+            self.update_slice(viewer.GetSlice(), i)  # Update QLabel with new image
+        
+        
+        
     def setup_mpr_viewers(self):
         if not self.viewers:
             return
 
         for i, widget in enumerate(self.vtk_widgets):
             self.viewers[i].SetupInteractor(None)  # Disable interactor
+            self.viewers[i].SetColorWindow(self.ui.window_width_slider.value())  # Set initial window width
+            self.viewers[i].SetColorLevel(self.ui.window_level_slider.value()) 
             self.viewers[i].Render()
 
             # Set the slice to the middle
@@ -271,11 +387,10 @@ class MyWindow(QMainWindow):
         if self.selected_folder:
             # Get the current values of the inputs
             current_mode = "raycast" if self.ui.ray_btn.isChecked() else "surface"
-            current_ambient = .1
-            current_diffuse = .9
-            current_specular = .2
-            current_specular_power = 10
-            # current_isovalue = 100
+            current_ambient = self.ui.ambient_input.value()
+            current_diffuse = self.ui.diffuse_input.value()
+            current_specular = self.ui.specular_input.value()
+            current_specular_power = self.ui.specular_input.value()
             current_isovalue = self.ui.iso_slider.value()
 
             # Create a visualizer object
